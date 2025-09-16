@@ -6,13 +6,12 @@ import java.util.Scanner;
 public class SimulatorOption1 {
     public static void main(String[] args) {
         if (args.length != 1) {
-            System.out.println("Usage: java SimulatorOption1 file");
+            System.out.println("Usage: java SimulatorOption1 nameFile");
             return;
         }
 
+        //Abrir el archivo de entrada
         String fileName = args[0];
-        System.out.println(fileName);
-
         File caseFile = new File(fileName);
 
         int TP = 0;
@@ -31,7 +30,7 @@ public class SimulatorOption1 {
                     String[] tams = line.split("=")[1].split(",");
                     for (String tam : tams) {
                         List<Integer> mTuple = new ArrayList<>();
-                        String[] mxm = tam.split("x");
+                        String[] mxm = tam.split("x"); //sacar los tamaños de fila y columna en una tupla
                         mTuple.add(Integer.parseInt(mxm[0]));
                         mTuple.add(Integer.parseInt(mxm[1]));
                         TAMS.add(mTuple);
@@ -39,12 +38,9 @@ public class SimulatorOption1 {
                 }
             }
         } catch (FileNotFoundException e) {
+            System.out.println("An error occurred while trying to read the file: " + fileName);
             throw new RuntimeException(e);
         }
-
-        System.out.println(TP);
-        System.out.println(NPROC);
-        System.out.println(TAMS);
 
 
         //Verificar que la cantidad de tamaños de matrices sea igual a la cantidad de procesos
@@ -58,7 +54,8 @@ public class SimulatorOption1 {
             int NF = TAMS.get(i).get(0); //número de filas
             int NC = TAMS.get(i).get(1); //número de columnas
             int NR = NF*NC*3; //número de referencias (#enteros por matriz x 3 matrices)
-            int NP = (int) Math.ceil(NR*4.0/TP); //número de páginas virtuales
+            int totalSpace = NR*4;
+            int NP = (int) Math.ceil(totalSpace*1.0/TP); //número de páginas virtuales
 
             //Generar un archivo por cada proceso de acuerdo a su información respectiva
             fileName = "proc"+i+".txt";
@@ -70,9 +67,14 @@ public class SimulatorOption1 {
                     System.out.println("File already exists.");
                 }
             } catch (IOException e) {
-                System.out.println("An error occurred.");
+                System.out.println("An error occurred creating the file of "+fileName);
                 throw new RuntimeException(e);
             }
+
+            int[] pr; //estructura para obtener la página actual y la referencia
+            int refM1 = 0;
+            int refM2 = NC*NF*4;
+            int refM3 = NC*NF*4*2;
 
             // Escribir la información de la memoria virtual asignada para el proceso
             try (FileWriter writer = new FileWriter(fileName)) {
@@ -81,10 +83,29 @@ public class SimulatorOption1 {
                 writer.write("NC=" + NC +"\n");
                 writer.write("NR=" + NR +"\n");
                 writer.write("NP=" + NP +"\n");
-                System.out.println("Successfully wrote to the file.");
+                for (int j = 0; j < NF; j++) {
+                    for (int k = 0; k < NC; k++) {
+                        pr = calculatePageAndReference(refM1, TP);
+                        writer.write("M1: ["+j+"-"+k+"], "+pr[0]+", "+pr[1]+", r\n");
+                        pr = calculatePageAndReference(refM2, TP);
+                        writer.write("M2: ["+j+"-"+k+"], "+pr[0]+", "+pr[1]+", r\n");
+                        pr = calculatePageAndReference(refM3, TP);
+                        writer.write("M3: ["+j+"-"+k+"], "+pr[0]+", "+pr[1]+", w\n");
+                        refM1+=4;
+                        refM2+=4;
+                        refM3+=4;
+                    }
+                }
             } catch (IOException e) {
+                System.out.println("An error occurred while writing in the file of "+fileName);
                 throw new RuntimeException(e);
             }
         }
+    }
+
+    public static int[] calculatePageAndReference(int currentReference, int pageSize) {
+        int page = currentReference/pageSize;
+        int ref = currentReference%pageSize;
+        return new int[]{page, ref};
     }
 }
