@@ -39,6 +39,7 @@ public class SimulatorOption1 {
             }
         } catch (FileNotFoundException e) {
             System.out.println("An error occurred while trying to read the file: " + fileName);
+            System.out.println("Verify the file exists and it's on the same directory.");
             throw new RuntimeException(e);
         }
 
