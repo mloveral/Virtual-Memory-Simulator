@@ -16,13 +16,22 @@ public class SimulatorOption2 {
         //Lista con los marcos asignados a cada proceso (el valor de la posición i representa la lista de marcos asignados al proceso i)
         List<Set<Integer>> assignedFrames = new ArrayList<>();
 
-        //TODO: Hacer las tablas de traducción por cada tabla
+        //Las tablas de traducción por cada proceso
+        List<List<List<Integer>>> traductionTables = new ArrayList<>();
 
         System.out.println("Inicio");
         for (int i = 0; i < NPROC; i++) {
             String filename = "proc" + i + ".txt";
             System.out.println("PROC " + i + " == Leyendo archivo de configuración ==");
             File inputFile = new File(filename);
+
+            int NF;
+            int NC;
+            int NR;
+            int NP = 0;
+
+            //Crear una tabla de traducción para el proceso i
+            traductionTables.add(new ArrayList<>());
 
             try(Scanner sc = new Scanner(inputFile)) {
                 String line = sc.nextLine();
@@ -31,19 +40,18 @@ public class SimulatorOption2 {
                     System.out.println("PROC " + i + " leyendo TP. Tam Páginas: "+TP);
                 }
                 if (line.startsWith("NF=")) {
-                    int NF = Integer.parseInt(line.split("=")[1]);
+                    NF = Integer.parseInt(line.split("=")[1]);
                     System.out.println("PROC " + i + " leyendo NF. Num Filas: "+NF);
                 }
                 if (line.startsWith("NC=")) {
-                    int NC = Integer.parseInt(line.split("=")[1]);
+                    NC = Integer.parseInt(line.split("=")[1]);
                     System.out.println("PROC " + i + " leyendo NC. Num Cols: "+NC);
                 }
-                if (line.startsWith("NR=")) {
-                    int NR = Integer.parseInt(line.split("=")[1]);
+                if (line.startsWith("NR=")) {NR = Integer.parseInt(line.split("=")[1]);
                     System.out.println("PROC " + i + " leyendo NR. Num Referencias: "+NR);
                 }
                 if (line.startsWith("NP=")) {
-                    int NP = Integer.parseInt(line.split("=")[1]);
+                    NP = Integer.parseInt(line.split("=")[1]);
                     System.out.println("PROC " + i + " leyendo NP. Num Páginas: "+NP);
                 }
             } catch (FileNotFoundException e) {
@@ -51,6 +59,17 @@ public class SimulatorOption2 {
                 System.out.println("Verify the file exists and it's on the same directory.");
                 throw new RuntimeException(e);
             }
+
+            //Se crea una fila por cada página en la tabla de traducción
+            for (int j = 0; j < NP; j++) {
+                List<Integer> fila = new ArrayList<>();
+                fila.add(-1); //pagina cargada
+                fila.add(0); //bit de consulta
+                fila.add(0); //bit de escritura
+                traductionTables.get(i).add(fila);
+            }
+
+
             System.out.println("PROC " + i + " == Terminó de leer archivo de configuración ==");
 
             //Asignación de marcos a cada proceso
