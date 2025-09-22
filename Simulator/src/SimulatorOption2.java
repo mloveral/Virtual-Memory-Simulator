@@ -18,7 +18,7 @@ public class SimulatorOption2 {
         // Datos por proceso
         List<ProcessData> processes = new ArrayList<>();
 
-        System.out.println("Inicio");
+        System.out.println("Inicio:");
         for (int i = 0; i < NPROC; i++) {
             String filename = "proc" + i + ".txt";
             System.out.println("PROC " + i + " == Leyendo archivo de configuración ==");
@@ -39,23 +39,23 @@ public class SimulatorOption2 {
                     String line = sc.nextLine();
                     if (line.startsWith("TP=")) {
                         TP = Integer.parseInt(line.split("=")[1]);
-                        System.out.println("PROC " + i + " leyendo TP. Tam Páginas: "+TP);
+                        System.out.println("PROC " + i + "leyendo TP. Tam Páginas: " + TP);
                     }
                     if (line.startsWith("NF=")) {
                         NF = Integer.parseInt(line.split("=")[1]);
-                        System.out.println("PROC " + i + " leyendo NF. Num Filas: "+NF);
+                        System.out.println("PROC " + i + "leyendo NF. Num Filas: " + NF);
                     }
                     if (line.startsWith("NC=")) {
                         NC = Integer.parseInt(line.split("=")[1]);
-                        System.out.println("PROC " + i + " leyendo NC. Num Cols: "+NC);
+                        System.out.println("PROC " + i + "leyendo NC. Num Cols: " + NC);
                     }
                     if (line.startsWith("NR=")) {
                         NR = Integer.parseInt(line.split("=")[1]);
-                        System.out.println("PROC " + i + " leyendo NR. Num Referencias: "+NR);
+                        System.out.println("PROC " + i + "leyendo NR. Num Referencias: " + NR);
                     }
                     if (line.startsWith("NP=")) {
                         NP = Integer.parseInt(line.split("=")[1]);
-                        System.out.println("PROC " + i + " leyendo NP. Num Páginas: "+NP);
+                        System.out.println("PROC " + i + "leyendo NP. Num Paginas: " + NP);
                     }
                 }
                 // Tabla de páginas
@@ -88,6 +88,7 @@ public class SimulatorOption2 {
             for (int j = 0; j < framesPerProcess; j++) {
                 int assignedFrame = j + i * framesPerProcess;
                 assignedFrames.add(assignedFrame);
+                System.out.println("Proceso " + i + ": recibe marco " + assignedFrame);
             }
 
             // LRU: pagina -> marco, accessOrder=true
@@ -101,7 +102,7 @@ public class SimulatorOption2 {
             pdata.references = references;
             processes.add(pdata);
 
-            System.out.println("PROC " + i + " == Terminó de leer archivo de configuración y referencias ==");
+            System.out.println("PROC " + i + "== Terminó de leer archivo de configuración ==");
         }
 
         // --- Loop de simulación (round-robin) ---
@@ -117,9 +118,16 @@ public class SimulatorOption2 {
             int pid = processQueue.poll();
             ProcessData pdata = processes.get(pid);
             int idx = currentRefIndex[pid];
+            System.out.println("Turno proc: " + pid);
             if (idx >= pdata.references.size()) {
                 // Proceso terminado, manejar reasignación de marcos si es necesario
-                // Encontrar proceso con más fallas de página (si quedan)
+                System.out.println("========================");
+                System.out.println("Termino proc: " + pid);
+                System.out.println("========================");
+                // Remover marcos
+                for (int frame : pdata.assignedFrames) {
+                    System.out.println("PROC " + pid + " removiendo marco: " + frame);
+                }
                 int framesToReassign = pdata.assignedFrames.size();
                 pdata.assignedFrames.clear();
                 if (!processQueue.isEmpty() && framesToReassign > 0) {
@@ -131,7 +139,11 @@ public class SimulatorOption2 {
                         }
                     }
                     if (maxPid != -1) {
-                        // Asignar marcos al proceso con más fallas
+                        int count = 0;
+                        for (int frame : pdata.lruMap.values()) {
+                            System.out.println("PROC " + maxPid + " asignando marco nuevo " + count);
+                            count++;
+                        }
                         processes.get(maxPid).assignedFrames.addAll(pdata.lruMap.values());
                     }
                 }
@@ -145,6 +157,8 @@ public class SimulatorOption2 {
             boolean pageFault = false;
             boolean replacement = false;
 
+            System.out.println("PROC " + pid + " analizando linea_: " + idx);
+
             // Verificar si la página está cargada (page hit)
             if (pdata.lruMap.containsKey(page)) {
                 if (!retrying[pid]) {
@@ -153,6 +167,7 @@ public class SimulatorOption2 {
                 pdata.lruMap.get(page); // Actualizar orden LRU
                 pdata.pageTable.get(page).set(1, 1); // ref bit
                 if (type == 'w') pdata.pageTable.get(page).set(2, 1);
+                System.out.println("PROC " + pid + " hits: " + pdata.pageHits);
             } else {
                 pageFault = true;
                 pdata.pageFaults++;
@@ -182,7 +197,10 @@ public class SimulatorOption2 {
                 }
                 pdata.pageTable.get(page).set(1, 1);
                 if (type == 'w') pdata.pageTable.get(page).set(2, 1);
+                System.out.println("PROC " + pid + " falla de pag: " + pdata.pageFaults);
             }
+
+            System.out.println("PROC " + pid + " envejecimiento");
 
             if (pageFault && !retrying[pid]) {
                 retrying[pid] = true;
